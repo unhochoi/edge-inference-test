@@ -23,9 +23,7 @@
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
     
     python3 -m pip install -U pip wheel setuptools setuptools_rust
-    pip3 install transformers datasets
-    pip3 install bert-for-tf2
-    pip3 install tensorflow_hub
+    pip3 install transformers datasets bert-for-tf2 tensorflow_hub
     
     git clone https://github.com/ddps-lab/edge-inference.git
     ```
