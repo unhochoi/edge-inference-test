@@ -1,3 +1,7 @@
+# Install the required package
+# !pip install datasets
+# !pip install transformers
+
 import transformers
 import datasets
 import tensorflow as tf
