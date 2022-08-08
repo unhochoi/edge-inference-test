@@ -96,34 +96,45 @@ def train_and_save_model(saved_model_dir):
 
 def tflite_converter(batch_size):
 
+  # Load HDF5
   hdf5_path = f'./model/{model_name}_model.h5'
   model = tf.keras.models.load_model(hdf5_path,custom_objects={'TFDistilBertModel': transformers.TFDistilBertModel})
 
+  # Fix model tensor
   run_model = tf.function(lambda x: model(x))
-
   input_spec = [tf.TensorSpec([batch_size, 128], tf.int32), tf.TensorSpec([batch_size, 128], tf.int32)]
   concrete_func = run_model.get_concrete_function(input_spec)
 
+  # Save SavedModel
   saved_model_path = f'./model/{model_name}_model_batch_{batch_size}'
   model.save(saved_model_path, save_format="tf", signatures=concrete_func)
 
-  # tflite_converter
+  # Tflite Converter
   converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
-  converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
-  converter.optimizations = [tf.lite.Optimize.DEFAULT]
-  tflite_model = converter.convert()
+  
+  # default
+  if (quantization=='fp32'):
+    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_model = converter.convert()
+  
+  # FP16 Configure
+  elif (quantization=='fp16'):
+    converter.target_spec.supported_types = [tf.float16]
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_model = converter.convert()
 
-  tflite_path = f'./model/{model_name}_batch_{batch_size}.tflite'
+  # Save tflite
+  tflite_path = f'./model/{model_name}_{quantization}_model_batch_{batch_size}.tflite'
   open(tflite_path, "wb").write(tflite_model)
-
-
+  
 def load_tflite_model(batch_size):
 
   global load_model_time
   global model
   
   load_model_time = time.time()
-  tflite_path = f'./model/{model_name}_batch_{batch_size}.tflite'
+  tflite_path = f'./model/{model_name}_{quantization}_model_batch_{batch_size}.tflite'
 
   model = tf.lite.Interpreter(model_path=tflite_path)
   model.allocate_tensors()
@@ -237,15 +248,17 @@ X_test = None
 y_test = None
 result_df = pd.DataFrame(columns=['batch_size', 'accuracy', 'load_model_time', 'load_dataset_time','total_inference_time', 'avg_inference_time','ips', 'ips_inf'])
 
+quantization = 'fp16'
 model_name = 'distilbert_sst2'
-# saved_model_dir=f'./model/{model_name}_model.h5'
+saved_model_dir=f'./model/{model_name}_model.h5'
+result_csv=f'./csv/{model_name}_{quantization}_model_result.csv'
+
+# 모델 훈련
 # train_and_save_model(saved_model_dir)
 
-result_csv=f'./csv/{model_name}_result.csv'
-
-# 모델 변환
-# for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
-#   tflite_converter(batch_size)
+# 배치 단위별 모델 생성
+for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
+  tflite_converter(batch_size)
 
 # 배치 단위로 추론
 for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
