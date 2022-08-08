@@ -111,10 +111,10 @@ def tflite_converter(batch_size):
 
   # Tflite Converter
   converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
+  converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
   
   # default
-  if (quantization=='fp32'):
-    converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS]
+  if (quantization=='fp32'):  
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
   
