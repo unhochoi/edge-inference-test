@@ -67,7 +67,7 @@ def train_and_save_model(saved_model_dir):
   valid_ds = (
     tf.data.Dataset
     .from_tensor_slices(((val_features_ids, val_features_masks), valid_sentiments))
-    .batch(batch_size)
+    .batch(128)
     .prefetch(tf.data.experimental.AUTOTUNE)
   )
 
