@@ -5,23 +5,34 @@ import pandas as pd
 
 def tflite_converter(batch_size):
 
-  # model_tensor_fix
+  # Load HDF5
   hdf5_path = f'./model/{model_name}_model.h5'
   model = tf.keras.models.load_model(hdf5_path)
 
+  # Fix model tensor
   run_model = tf.function(lambda x: model(x))
-
   concrete_func = run_model.get_concrete_function(
       tf.TensorSpec([batch_size, 130], model.inputs[0].dtype))
 
+  # Save SavedModel
   saved_model_path = f'./model/{model_name}_model_batch_{batch_size}'
   model.save(saved_model_path, save_format="tf", signatures=concrete_func)
 
-  # tflite_converter
+  # Tflite Converter
   converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
-  tflite_model = converter.convert()
 
-  tflite_path = f'./model/{model_name}_batch_{batch_size}.tflite'
+  # default
+  if (quantization='fp32'):
+    tflite_model = converter.convert()
+  
+  # FP16 Configure
+  elif (quantization='fp16'):
+    converter.target_spec.supported_types = [tf.float16]
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    tflite_model = converter.convert()
+
+  # Save tflite
+  tflite_path = f'./model/{model_name}_{quantization}_model_batch_{batch_size}.tflite'
   open(tflite_path, "wb").write(tflite_model)
 
 def load_tflite_model(batch_size):
@@ -30,7 +41,7 @@ def load_tflite_model(batch_size):
   global model
   
   load_model_time = time.time()
-  tflite_path = f'./model/{model_name}_batch_{batch_size}.tflite'
+  tflite_path = f'./model/{model_name}_{quantization}_model_batch_{batch_size}.tflite'
 
   model = tf.lite.Interpreter(model_path=tflite_path)
   model.allocate_tensors()
@@ -135,9 +146,14 @@ result_df = pd.DataFrame(columns=['batch_size', 'accuracy', 'load_model_time', '
 model_name = 'rnn_imdb'
 result_csv=f'./csv/{model_name}_result.csv'
 
-# 배치 단위로 추론
+quantization = 'fp16'
+
+# 배치 단위별 모델 생성
 for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
   tflite_converter(batch_size)
+
+# 배치 단위로 추론
+for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
   load_tflite_model(batch_size)
   inference(batch_size)
 
