@@ -22,11 +22,11 @@ def tflite_converter(batch_size):
   converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_path)
 
   # default
-  if (quantization='fp32'):
+  if (quantization=='fp32'):
     tflite_model = converter.convert()
   
   # FP16 Configure
-  elif (quantization='fp16'):
+  elif (quantization=='fp16'):
     converter.target_spec.supported_types = [tf.float16]
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     tflite_model = converter.convert()
