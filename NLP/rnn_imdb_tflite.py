@@ -143,10 +143,9 @@ load_model_time = None
 X_test = None
 result_df = pd.DataFrame(columns=['batch_size', 'accuracy', 'load_model_time', 'load_dataset_time','total_inference_time', 'avg_inference_time','ips', 'ips_inf'])
 
-model_name = 'rnn_imdb'
-result_csv=f'./csv/{model_name}_result.csv'
-
 quantization = 'fp16'
+model_name = 'rnn_imdb'
+result_csv=f'./csv/{model_name}_{quantization}_model_result.csv'
 
 # 배치 단위별 모델 생성
 for batch_size in [1, 2, 4, 8, 16, 32, 64, 128]:
